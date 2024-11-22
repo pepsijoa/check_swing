@@ -19,7 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="opticalflow.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="opticalflow.h" />
+    <ClInclude Include="SLIC.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
