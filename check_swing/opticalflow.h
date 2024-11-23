@@ -2,7 +2,12 @@
 #define opticalflow_H
 
 #include <string>
+#include<opencv2/opencv.hpp>
+#include <vector>
 
-int detect_max_opticalflow(std::string& videopath);
+using namespace std;
+vector<cv::Mat> detect_max_opticalflow(string& videopath);
+
+//cv::Mat SLICsegmentation(cv::Mat image, int k);
 
 #endif

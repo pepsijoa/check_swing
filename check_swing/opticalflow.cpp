@@ -1,3 +1,4 @@
+#include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video/tracking.hpp>
@@ -5,6 +6,7 @@
 #include <stdio.h>
 #include <Windows.h>
 #include <iostream>
+#include "SLIC.h"
 
 #define Width 600
 #define Height 400
@@ -108,12 +110,14 @@ int make_frame_video()
 }
 
 
-int detect_max_opticalflow(string& videopath)
+vector<cv::Mat> detect_max_opticalflow(string& videopath)
 {
+	vector<cv::Mat> maybeBat;
+
 	VideoCapture capture(videopath);
 	if (!capture.isOpened()) {
 		std::cerr << "can't open video" << endl;
-		return -1;
+		return maybeBat;
 	}
 	int x, y, key;
 	Mat flow, frame, prevFrame, img;
@@ -122,6 +126,8 @@ int detect_max_opticalflow(string& videopath)
 	vector<vector<double>> pregradflow(Height, vector<double>(Width, 0));
 	vector<vector<double>> prepregradflow(Height, vector<double>(Width, 0));
 
+
+	
 	int frame_count = 0;
 	while (1) {
 		bool isexist = capture.read(frame);
@@ -134,11 +140,12 @@ int detect_max_opticalflow(string& videopath)
 			// By y += 5, x += 5 you can specify the grid
 
 			double max = 0.0f;
-			float th = 0.7f;
+			float th = 0.9f;
+
+			//cal flow
 			for (y = Height*0.3; y < Height*0.75; y += 3) {
 				for (x = 0; x < Width; x += 3) {
 
-					
 					const Point2f flowatxy = flow.at<Point2f>(y, x);
 					double grad = sqrt((flowatxy.x * flowatxy.x) + (flowatxy.y * flowatxy.y));
 					gradflow[y][x] = grad;
@@ -147,20 +154,22 @@ int detect_max_opticalflow(string& videopath)
 				}
 			}
 			
-
+			// get candidate
 			for (y = Height * 0.3; y < Height * 0.75; y += 3) {
 				for (x = 0; x < Width; x += 3) {
-					if (gradflow[y][x] > max * th) {
-						
-						for (int winy = -1; winy <= 1; winy++) {
-							for (int winx = -1; winx <= 1; winx++) {
+					if (gradflow[y][x] > max * th and max > 5.0f) {
+						for (int winy = -2; winy <= 2; winy++) {
+							for (int winx = -5; winx <= 5; winx++) {
 								if (y + winy < 0 or y + winy >= Height * 0.75 or x + winx < 0 or x + winx >= Width) continue;
-								if (pregradflow[y + winy][x + winx] > max * th) {
+								if (pregradflow[y + winy][x + winx] > max * th or prepregradflow[y + winy][x + winx] > max * th) {
+									Point candi(x, y);
+									int roiwidth = 30; int roiheight = 30;
+									Rect roi(candi.x - roiwidth / 2, candi.y - roiheight / 2, roiwidth, roiheight);
+									roi = roi & Rect(0, 0, Width, Height);
+									maybeBat.push_back(frame(roi));
 									circle(img, Point(x, y), 3, Scalar(0, 0, 255), -1);
 								}
-								if (prepregradflow[y + winy][x + winx] > max * th) {
-									circle(img, Point(x, y), 3, Scalar(0, 0, 255), -1);
-								}
+								
 							}
 						}
 
@@ -180,8 +189,49 @@ int detect_max_opticalflow(string& videopath)
 		key = waitKey(20);
 		if (key >= 0) break;
 	}
-	return 0;
+	return maybeBat;
 }
 
+//Mat SLICsegmentation(Mat image, int k)
+//{
+//
+//	SLIC slic;
+//	int x, y;
+//	int height, width;
+//	int numlabels; // Generated number of superpixels
+//	int m_spcount = k; // Desired number of superpixels
+//	double m_compactness = 20;// 20.0; // compactness factor (1-40)
+//	height = image.rows;
+//	width = image.cols;
+//	unsigned int* ubuff = (unsigned int*)calloc(height * width, sizeof(unsigned int));
+//	int* labels = (int*)calloc(height * width, sizeof(int));
+//	
+//	for (y = 0; y < height; y++) {
+//		for (x = 0; x < width; x++) {
+//			ubuff[y * width + x] = (int)image.at<Vec3b>(y, x)[0] + ((int)image.at<Vec3b>(y, x)[1] << 8) +
+//				((int)image.at<Vec3b>(y, x)[2] << 16);
+//		}
+//	}
+//
+//	
+//
+//	slic.DoSuperpixelSegmentation_ForGivenNumberOfSuperpixels(ubuff, width, height, labels,
+//		numlabels, m_spcount, m_compactness);
+//
+//	Mat result(height, width, CV_8UC3);
+//	slic.DrawContoursAroundSegments(ubuff, labels, width, height, 0);
+//	for (y = 0; y < height; y++) {
+//		for (x = 0; x < width; x++) {
+//			result.at<Vec3b>(y, x)[0] = ubuff[y * width + x] & 0xff;
+//			result.at<Vec3b>(y, x)[1] = ubuff[y * width + x] >> 8 & 0xff;
+//			result.at<Vec3b>(y, x)[2] = ubuff[y * width + x] >> 16 & 0xff;
+//		}
+//	}
+//	
+//	free(ubuff);
+//	free(labels);
+//	return result;
+//	
+//}
 
 
