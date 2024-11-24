@@ -6,72 +6,40 @@
 using namespace cv;
 using namespace std;
 
+#define LEFT 1
+#define RIGHT 0
+
+Mat get_frame(float num, string&videopath)
+{
+    VideoCapture cap(videopath);
+    if (!cap.isOpened()) {
+        cerr << "Error: Cannot open video file!" << endl;
+    }
+
+    int totalFrames = static_cast<int>(cap.get(CAP_PROP_FRAME_COUNT));
+    int targetFrame = totalFrames * num;
+    
+    cap.set(CAP_PROP_POS_FRAMES, targetFrame); // 프레임 위치 설정
+
+    Mat frame;
+    if (cap.read(frame)) {
+        imshow("frame", frame);
+        waitKey(0);
+        cap.release();
+        return frame;
+    }
+}
 
 int main(void)
 {
-	string videopath = "./video/check5.mp4";
-	vector<cv::Mat> candi = detect_max_opticalflow(videopath);
-	good_matching(videopath, candi);
+	string videopath = "./video/check3.mp4";
+    Mat img = get_frame(0.3, videopath); 
+	int body_x = maskgrab(img, LEFT);
+
+	//vector<int> candi = detect_max_opticalflow(videopath);
+	
+	//drawpoint(body_x, candi, videopath);
+
 	return 0;
 }
 
-//
-//#include "opencv2/opencv.hpp"
-//#include <iostream>
-//using namespace cv;
-//using namespace std;
-//int good_matching(std::string& videopath, vector<cv::Mat> candi)
-//{
-//
-//	Mat src1 = imread("./img/test.jpg", IMREAD_GRAYSCALE);
-//	VideoCapture capture("./video/check1.mp4");
-//	if (!capture.isOpened()) {
-//		std::cerr << "can't open video" << endl;
-//		return -1;
-//	}
-//	imshow("res", src1);
-//	waitKey(0);
-//	//Mat src2 = imread("./img/player2.png", IMREAD_GRAYSCALE);
-//
-//	int key;
-//
-//	Ptr<Feature2D> feature = ORB::create();
-//
-//	vector<KeyPoint> keypoints1, keypoints2;
-//
-//	Mat desc1, frame;
-//	feature->detectAndCompute(src1, Mat(), keypoints1, desc1);
-//	Ptr<DescriptorMatcher> matcher = BFMatcher::create(NORM_HAMMING);
-//
-//	while (1)
-//	{
-//		bool isexist = capture.read(frame);
-//		if (!isexist) break;
-//
-//		Mat src2;
-//		cvtColor(frame, src2, COLOR_BGR2GRAY);
-//
-//		Mat desc2;
-//		feature->detectAndCompute(src2, Mat(), keypoints2, desc2);
-//
-//		vector<DMatch> matches;
-//		matcher->match(desc1, desc2, matches);
-//
-//		Mat dst;
-//
-//		std::sort(matches.begin(), matches.end());
-//		vector<DMatch> good_matches(matches.begin(), matches.end());
-//
-//
-//		cv::drawMatches(src1, keypoints1, src2, keypoints2, good_matches, dst,
-//			Scalar::all(-1), Scalar::all(-1), vector<char>(),
-//			DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-//
-//		cv::imshow("dst", dst);
-//		key = waitKey(20);
-//		if (key >= 0) break;
-//
-//		keypoints2.clear();
-//	}
-//
-//}

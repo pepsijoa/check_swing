@@ -88,3 +88,26 @@ int good_matching(std::string& videopath, vector<cv::Mat> candi)
 
 	}
 }
+
+void drawpoint(int bodyX, vector<int>batX, std::string& videopath)
+{
+	VideoCapture capture(videopath);
+	if (!capture.isOpened()) {
+		std::cerr << "can't open video" << endl;
+	}
+
+	int key;
+	Mat frame, img;
+	while (1)
+	{
+		bool isexist = capture.read(frame);
+		if (!isexist) break;
+		resize(frame, img, Size(Width, Height));
+
+
+		imshow("res", img);
+		key = waitKey(20);
+		if (key >= 0) break;
+
+	}
+}

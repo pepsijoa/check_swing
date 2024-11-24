@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compare.cpp" />
+    <ClCompile Include="grabcut.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="opticalflow.cpp" />
     <ClCompile Include="SLIC.cpp" />

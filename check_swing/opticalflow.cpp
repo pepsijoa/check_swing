@@ -110,14 +110,15 @@ int make_frame_video()
 }
 
 
-vector<cv::Mat> detect_max_opticalflow(string& videopath)
+vector<int> detect_max_opticalflow(string& videopath)
 {
 	vector<cv::Mat> maybeBat;
+	vector<int> batX;
 
 	VideoCapture capture(videopath);
 	if (!capture.isOpened()) {
 		std::cerr << "can't open video" << endl;
-		return maybeBat;
+		return batX;
 	}
 	int x, y, key;
 	Mat flow, frame, prevFrame, img;
@@ -159,6 +160,7 @@ vector<cv::Mat> detect_max_opticalflow(string& videopath)
 			for (y = Height * 0.3; y < Height * 0.75; y += 3) {
 				for (x = 0; x < Width; x += 3) {
 					if (gradflow[y][x] > max * th and max > 5.0f) {
+						
 						for (int winy = -winSize; winy <= winSize; winy++) {
 							for (int winx = -winSize; winx <= winSize; winx++) {
 								if (y + winy < 0 or y + winy >= Height * 0.75 or x + winx < 0 or x + winx >= Width) continue;
@@ -168,7 +170,8 @@ vector<cv::Mat> detect_max_opticalflow(string& videopath)
 									Rect roi(candi.x - roiwidth, candi.y - roiheight, roiwidth, roiheight);
 									roi = roi & Rect(0, 0, Width, Height);
 									maybeBat.push_back(frame(roi));
-									circle(img, Point(x, y), 3, Scalar(0, 0, 255), -1);
+									//circle(img, Point(x, y), 3, Scalar(0, 0, 255), -1);
+									batX.push_back(x);
 								}
 								
 							}
@@ -186,11 +189,11 @@ vector<cv::Mat> detect_max_opticalflow(string& videopath)
 		}
 		else frame.copyTo(prevFrame);
 		//imwrite("./output/res"+to_string(frame_count)+".bmp", img);
-		imshow("res", img);
+		//imshow("res", img);
 		key = waitKey(20);
 		if (key >= 0) break;
 	}
-	return maybeBat;
+	return batX;
 }
 
 //Mat SLICsegmentation(Mat image, int k)
