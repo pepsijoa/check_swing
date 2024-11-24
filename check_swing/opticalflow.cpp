@@ -152,19 +152,20 @@ vector<cv::Mat> detect_max_opticalflow(string& videopath)
 					if (max < grad) max = grad;
 
 				}
-			}
+			} 
 			
 			// get candidate
+			int winSize = 60;
 			for (y = Height * 0.3; y < Height * 0.75; y += 3) {
 				for (x = 0; x < Width; x += 3) {
 					if (gradflow[y][x] > max * th and max > 5.0f) {
-						for (int winy = -2; winy <= 2; winy++) {
-							for (int winx = -5; winx <= 5; winx++) {
+						for (int winy = -winSize; winy <= winSize; winy++) {
+							for (int winx = -winSize; winx <= winSize; winx++) {
 								if (y + winy < 0 or y + winy >= Height * 0.75 or x + winx < 0 or x + winx >= Width) continue;
 								if (pregradflow[y + winy][x + winx] > max * th or prepregradflow[y + winy][x + winx] > max * th) {
 									Point candi(x, y);
-									int roiwidth = 30; int roiheight = 30;
-									Rect roi(candi.x - roiwidth / 2, candi.y - roiheight / 2, roiwidth, roiheight);
+									int roiwidth = winSize; int roiheight = winSize;
+									Rect roi(candi.x - roiwidth, candi.y - roiheight, roiwidth, roiheight);
 									roi = roi & Rect(0, 0, Width, Height);
 									maybeBat.push_back(frame(roi));
 									circle(img, Point(x, y), 3, Scalar(0, 0, 255), -1);
