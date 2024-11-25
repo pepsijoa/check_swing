@@ -6,7 +6,7 @@
 #include <vector>
 
 using namespace std;
-vector<int> detect_max_opticalflow(string& videopath);
+int detect_max_opticalflow(string& videopath, cv::Mat& output, int direction, int bodyX);
 int good_matching(std::string& videopath, vector<cv::Mat> candi);
 int maskgrab(cv::Mat img, int direction);
 cv::Mat whiten(cv::Mat img);

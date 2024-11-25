@@ -11,6 +11,12 @@
 #define Width 600
 #define Height 400
 
+#define LEFT 1
+#define RIGHT 2
+
+#define NOBAT 2
+#define NOVIDEO 3
+
 using namespace cv;
 
 using namespace std;
@@ -49,7 +55,7 @@ int show_opticalflow(string& videopath)
 					if (min > gradflow[y][x]) min = gradflow[y][x];
 					if (max < gradflow[y][x]) max = gradflow[y][x];
 
-					line(img, Point(x, y), Point(cvRound(x + flowatxy.x), cvRound(y + flowatxy.y)), Scalar(0, 255, 0));
+					cv::line(img, Point(x, y), Point(cvRound(x + flowatxy.x), cvRound(y + flowatxy.y)), Scalar(0, 255, 0));
 					circle(img, Point(x, y), 1, Scalar(0, 0, 0), -1);
 				}
 			}
@@ -110,18 +116,24 @@ int make_frame_video()
 }
 
 
-vector<int> detect_max_opticalflow(string& videopath)
+int detect_max_opticalflow(string& videopath, Mat& output, int direction, int bodyX)
 {
+	
+	int x, y, key;
+	int checkswing = 0;
+	Mat flow, frame, prevFrame, img;
+
 	vector<cv::Mat> maybeBat;
 	vector<int> batX;
 
 	VideoCapture capture(videopath);
+
 	if (!capture.isOpened()) {
 		std::cerr << "can't open video" << endl;
-		return batX;
+		return NOVIDEO;
 	}
-	int x, y, key;
-	Mat flow, frame, prevFrame, img;
+	
+	
 	
 	vector<vector<double>> gradflow(Height, vector<double>(Width, 0));
 	vector<vector<double>> pregradflow(Height, vector<double>(Width, 0));
@@ -130,16 +142,31 @@ vector<int> detect_max_opticalflow(string& videopath)
 
 	
 	int frame_count = 0;
-	while (1) {
+	int batXsize;
+	int initial;
+	
+	if (direction == LEFT) initial = Width - 1;
+	else initial = 0;
+	batXsize = initial;
+	
+	
+	while (1) {		
 		bool isexist = capture.read(frame);
 		if (!isexist) break;
 		resize(frame, img, Size(Width, Height));
+
+		
+
 		cv::cvtColor(img, frame, CV_BGR2GRAY);
 		if (prevFrame.empty() == false) {
 			// calculate optical flow
 			calcOpticalFlowFarneback(prevFrame, frame, flow, 0.4, 2, 12, 2, 7, 1.2, 0);
 			// By y += 5, x += 5 you can specify the grid
-
+			
+			//bat line for red
+			Point bodysp(bodyX, 0);
+			Point bodyep(bodyX, img.rows - 1);
+			cv::line(img, bodysp, bodyep, Scalar(0, 0, 255), 1);
 			double max = 0.0f;
 			float th = 0.9f;
 
@@ -159,83 +186,100 @@ vector<int> detect_max_opticalflow(string& videopath)
 			int winSize = 60;
 			for (y = Height * 0.3; y < Height * 0.75; y += 3) {
 				for (x = 0; x < Width; x += 3) {
+				
+					int nx = x + flow.at<Point2f>(y, x).x;
+
 					if (gradflow[y][x] > max * th and max > 5.0f) {
-						
+
+
 						for (int winy = -winSize; winy <= winSize; winy++) {
 							for (int winx = -winSize; winx <= winSize; winx++) {
 								if (y + winy < 0 or y + winy >= Height * 0.75 or x + winx < 0 or x + winx >= Width) continue;
 								if (pregradflow[y + winy][x + winx] > max * th or prepregradflow[y + winy][x + winx] > max * th) {
-									Point candi(x, y);
+									
+									if (direction == LEFT) {
+										if (nx < batXsize) {
+											batXsize = nx;
+											batX.push_back(batXsize);
+											//bat line for green
+											Point batsp(batXsize, 0);
+											Point batep(batXsize, img.rows - 1);
+											cv::line(img, batsp, batep, Scalar(0, 255, 0), 1);
+											output = img.clone();
+										}
+									}
+
+									else {
+										if (nx > batXsize) {
+											batXsize = nx;
+											batX.push_back(batXsize);
+											//bat line for green
+											Point batsp(batXsize, 0);
+											Point batep(batXsize, img.rows - 1);
+											cv::line(img, batsp, batep, Scalar(0, 255, 0), 1);
+											output = img.clone();
+
+										}
+											
+									}
+									
+
+									// image crop for HOG
+									/*Point candi(x, y);
 									int roiwidth = winSize; int roiheight = winSize;
 									Rect roi(candi.x - roiwidth, candi.y - roiheight, roiwidth, roiheight);
 									roi = roi & Rect(0, 0, Width, Height);
-									maybeBat.push_back(frame(roi));
+									maybeBat.push_back(frame(roi));*/
+									
 									//circle(img, Point(x, y), 3, Scalar(0, 0, 255), -1);
-									batX.push_back(x);
+									
 								}
 								
 							}
 						}
+						
 
 					}
 				}
 			}
+
+			
 
 			frame_count++;
 
 			prepregradflow = pregradflow;
 			pregradflow = gradflow;
 			frame.copyTo(prevFrame);
+
+			
+
 		}
 		else frame.copyTo(prevFrame);
+
 		//imwrite("./output/res"+to_string(frame_count)+".bmp", img);
-		//imshow("res", img);
+		cv::imshow("res", img);
 		key = waitKey(20);
 		if (key >= 0) break;
 	}
-	return batX;
-}
+	
 
-//Mat SLICsegmentation(Mat image, int k)
-//{
-//
-//	SLIC slic;
-//	int x, y;
-//	int height, width;
-//	int numlabels; // Generated number of superpixels
-//	int m_spcount = k; // Desired number of superpixels
-//	double m_compactness = 20;// 20.0; // compactness factor (1-40)
-//	height = image.rows;
-//	width = image.cols;
-//	unsigned int* ubuff = (unsigned int*)calloc(height * width, sizeof(unsigned int));
-//	int* labels = (int*)calloc(height * width, sizeof(int));
-//	
-//	for (y = 0; y < height; y++) {
-//		for (x = 0; x < width; x++) {
-//			ubuff[y * width + x] = (int)image.at<Vec3b>(y, x)[0] + ((int)image.at<Vec3b>(y, x)[1] << 8) +
-//				((int)image.at<Vec3b>(y, x)[2] << 16);
-//		}
-//	}
-//
-//	
-//
-//	slic.DoSuperpixelSegmentation_ForGivenNumberOfSuperpixels(ubuff, width, height, labels,
-//		numlabels, m_spcount, m_compactness);
-//
-//	Mat result(height, width, CV_8UC3);
-//	slic.DrawContoursAroundSegments(ubuff, labels, width, height, 0);
-//	for (y = 0; y < height; y++) {
-//		for (x = 0; x < width; x++) {
-//			result.at<Vec3b>(y, x)[0] = ubuff[y * width + x] & 0xff;
-//			result.at<Vec3b>(y, x)[1] = ubuff[y * width + x] >> 8 & 0xff;
-//			result.at<Vec3b>(y, x)[2] = ubuff[y * width + x] >> 16 & 0xff;
-//		}
-//	}
-//	
-//	free(ubuff);
-//	free(labels);
-//	return result;
-//	
-//}
+	if (!batX.empty()) {
+		if (direction == LEFT)
+		{
+			if (batX[batX.size() - 1] < bodyX) checkswing = 1;
+			else checkswing = 0;
+		}
+		else {
+			if (batX[batX.size() - 1] > bodyX) checkswing = 1;
+			else checkswing = 0;
+		}
+	}
+
+	else {
+		return NOBAT;
+	}
+
+	return checkswing;
+}
 
 

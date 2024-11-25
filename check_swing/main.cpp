@@ -7,7 +7,7 @@ using namespace cv;
 using namespace std;
 
 #define LEFT 1
-#define RIGHT 0
+#define RIGHT 2
 
 Mat get_frame(float num, string&videopath)
 {
@@ -17,7 +17,7 @@ Mat get_frame(float num, string&videopath)
     }
 
     int totalFrames = static_cast<int>(cap.get(CAP_PROP_FRAME_COUNT));
-    int targetFrame = totalFrames * num;
+    int targetFrame = static_cast<int>(totalFrames * num);
     
     cap.set(CAP_PROP_POS_FRAMES, targetFrame); // 프레임 위치 설정
 
@@ -35,10 +35,20 @@ int main(void)
 	string videopath = "./video/check3.mp4";
     Mat img = get_frame(0.3, videopath); 
 	int body_x = maskgrab(img, LEFT);
-
-	//vector<int> candi = detect_max_opticalflow(videopath);
-	
-	//drawpoint(body_x, candi, videopath);
+    Mat result;
+	int check = detect_max_opticalflow(videopath, result, LEFT, body_x);
+    
+    if (check == 1) {
+        cout << "swing" << endl;
+    }
+    else if (check) {
+        cout << "error" << endl; 
+    }
+    else {
+        cout << " no swing " << endl;
+    }
+    imshow("result", result);
+    waitKey(0);
 
 	return 0;
 }
